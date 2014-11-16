@@ -151,7 +151,7 @@ send_service (const char *service, const char *method, int repeat)
   strcat(objpath, "/");
   strcat(objpath, service);
   //fprintf(stdout, "Using service %s on Obj %s and iface %s\n", service, objpath, iface);
-  return send_message_via_dbus (repeat, &objpath, &iface, RS232SERVER_METHOD, method);
+  return send_message_via_dbus (repeat, objpath, iface, RS232SERVER_METHOD, method);
 }
 
 // expecting something like ./miniclient azur voldown 5
