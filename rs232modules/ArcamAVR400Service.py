@@ -43,7 +43,7 @@ class ArcamAVR400Service(BaseService):
       return self.help()
     if (check):
       val = self.queue.add(arcamAVR400_cmds.commands[cmd].decode('ascii'), check)
-      return val.decode('ascii')
+      return str([hex(ord(x) for x in val])
     for i in range(0, repeat):
       self.queue.add(arcamAVR400_cmds.commands[cmd].decode('ascii'), check)
     return ""

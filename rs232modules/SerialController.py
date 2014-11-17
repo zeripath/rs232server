@@ -51,9 +51,9 @@ class SerialController:
   def cmd(self, cmd, read=False):
     try:
       if cmd is not "clear":
-        numBytes = self.ser.write(str(cmd))
+        numBytes = self.ser.write(cmd)
         self.serial_logger.debug("Wrote %d bytes", numBytes)
-        self.serial_logger.debug (cmd.rstrip() + " called")
+        self.serial_logger.debug (str([hex(ord(x)) for x in cmd]) + " called")
         if read:
           code = self.ser.read(self.readval)
           return code
