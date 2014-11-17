@@ -52,6 +52,9 @@ The script requires python2, python-pyserial and dbus
 To connect the Amplifier (Azur 340R), use a null modem cable to a serial port
 or USB->serial controller
 
+You will also need to copy the uk.co.madeo.rs232server.conf to /etc/dbus-1/system.d
+to enable the DBus server.
+
 USE
 The rs232server can be started like any python program just run
 ./rs232server.  Run ./rs232server --help for further info. A tty can be set if
