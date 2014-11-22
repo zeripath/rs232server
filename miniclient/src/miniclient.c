@@ -24,7 +24,7 @@
 static void
 print_help ()
 {
-  fprintf(stdout, "Usage:\n miniclient <service> <command> [repeat]\n");
+  fprintf(stdout, "Usage:\n miniclient <service> <command> [argument]\n");
   fprintf(stdout, "Use miniclient list to get a list of currently loaded services\n");
   fprintf(stdout, "Use miniclient <service> help to get a list of commands supported by services\n");
 }
@@ -65,23 +65,14 @@ parse_instropect_xml(char *data)
 }
 
 int
-send_message_via_dbus (int repeat, char *obj, char *iface, char *method, const char *param)
+send_message_via_dbus (const char* argument, char *obj, char *iface, char *method, const char *param)
 {
   DBusConnection *connection;
   DBusError error;
   DBusMessage *message;
   DBusMessage *reply;
-  dbus_bool_t direct = 0;
-  dbus_bool_t introspect = 0;
+  dbus_bool_t direct = 1;
   int ret = SUCCESS;
-
-  // if we have one repeat then we will try get a response
-  if (repeat == 1) {
-    direct = 1;
-  } else if (repeat == -1) {
-    introspect = 1;
-    direct = 1;
-  }
 
   dbus_error_init (&error);
 
@@ -97,7 +88,7 @@ send_message_via_dbus (int repeat, char *obj, char *iface, char *method, const c
 
   if (strcmp(RS232SERVER_OBJ_PATH, obj) != 0) {
     /* append arguments */
-    dbus_message_append_args (message, DBUS_TYPE_STRING, &param, DBUS_TYPE_INT32, &repeat, DBUS_TYPE_BOOLEAN, &direct, DBUS_TYPE_INVALID);
+    dbus_message_append_args (message, DBUS_TYPE_STRING, &param, DBUS_TYPE_STRING, &argument, DBUS_TYPE_BOOLEAN, &direct, DBUS_TYPE_INVALID);
   }
   /* send message & flush */
   reply = dbus_connection_send_with_reply_and_block (connection, message, DBUS_REPLY_TIMEOUT, &error);
@@ -111,7 +102,7 @@ send_message_via_dbus (int repeat, char *obj, char *iface, char *method, const c
 	if (type == DBUS_TYPE_STRING) {
 	  char *replyContent = NULL;
 	  dbus_message_iter_get_basic(&args, &replyContent);
-          if (introspect)
+          if (!strcmp(method, INTROSPECT_METHOD) && !strcmp(iface, INTROSPECT_IFACE))
             ret = parse_instropect_xml(replyContent);
           else
             printf("%s\n", replyContent);
@@ -132,15 +123,11 @@ send_message_via_dbus (int repeat, char *obj, char *iface, char *method, const c
   dbus_connection_unref (connection);
   dbus_error_free (&error);
 
-  /* make sure the line is clear when sending repeat messages and not collecting responses over serial */
-  if (!direct)
-    send_message_via_dbus (1, obj, iface, method, "clear");
-
   return ret;
 }
 
 int
-send_service (const char *service, const char *method, int repeat)
+send_service (const char *service, const char *method, const char *argument)
 {
   char objpath[255];
   char iface[255];
@@ -151,24 +138,23 @@ send_service (const char *service, const char *method, int repeat)
   strcat(objpath, "/");
   strcat(objpath, service);
   //fprintf(stdout, "Using service %s on Obj %s and iface %s\n", service, objpath, iface);
-  return send_message_via_dbus (repeat, objpath, iface, RS232SERVER_METHOD, method);
+  return send_message_via_dbus (argument, objpath, iface, RS232SERVER_METHOD, method);
 }
 
 // expecting something like ./miniclient azur voldown 5
 int
 main (const int argc, const char **argv)
 {
-  unsigned int repeat;
   const char *method;
   const char *service;
+  const char *argument;
 
   service = argv[1];
   method = argv[2];
 
   /* if we don't get any arguments exit */
   if (argc == 2 && (strcmp(service, "list") == 0)) {
-    // -1 repeat signifies we are in instrospect mode
-    return send_message_via_dbus (-1, RS232SERVER_OBJ_PATH, INTROSPECT_IFACE, INTROSPECT_METHOD, method);
+    return send_message_via_dbus (NO_ARGUMENT, RS232SERVER_OBJ_PATH, INTROSPECT_IFACE, INTROSPECT_METHOD, method);
   } else if (argc < 3) {
     fprintf (stderr, "%s invalid arguments!\n", argv[0]);
     print_help();
@@ -176,20 +162,10 @@ main (const int argc, const char **argv)
   }
 
   if (argc == 3) {
-    repeat = REPEAT_NONE;
+    argument = NO_ARGUMENT;
   } else {
-    char *endptr;
-    unsigned int n;
-    errno = 0;
-    n = strtol(argv[3], &endptr, 10);
-    if (*endptr == '\0' && n > 0) {
-      repeat = n;
-    } else {
-      repeat = REPEAT_NONE;
-      fprintf (stderr, "error in string conversion, repeat set to %d.\n", REPEAT_NONE);
-    }
+    argument = argv[3];
   }
 
-  //fprintf (stderr, "service = %s, method = %s, repeat = %d\n", service, method, repeat);
-  return send_service(service, method, repeat);
+  return send_service(service, method, argument);
 }

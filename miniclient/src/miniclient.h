@@ -48,4 +48,5 @@
 #define MAX_STR_SIZE 30
 #define DBUS_REPLY_TIMEOUT 50000
 #define REPEAT_NONE 1
+#define NO_ARGUMENT ""
 
