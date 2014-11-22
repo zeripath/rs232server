@@ -42,11 +42,28 @@ class SerialController:
     self.t.daemon = True
     self.t.start()
 
+    # set up reader thread
+    self.reader = Thread(target=self.read_monitor)
+    self.reader.daemon = True
+    self.reader.start()
+
   def setup_serial(self, ser):
     self.ser = ser
     self.ser.flushInput()
     self.ser.flushOutput()
     self.serial_logger.debug("Initialised %s with baud rate %d", ser.name, ser.baudrate)
+
+  def read(self, all_entries=False):
+    try:
+      if (hasattr(self.readval, "read")):
+        return self.readval.read(self.ser, all_entries)
+      else:
+        if (all_entries):
+          return self.ser.read(self.ser.inWaiting())
+        else:
+          return self.ser.read(self.readval)
+    except:
+      self.serial_logger.exception("Failed to read from the serial buffer")
 
   def cmd(self, cmd, read=False):
     try:
@@ -54,27 +71,30 @@ class SerialController:
         numBytes = self.ser.write(cmd)
         self.serial_logger.debug("Wrote %d bytes", numBytes)
         self.serial_logger.debug (str([hex(ord(x)) for x in cmd]) + " called")
-        if read:
-          code = self.ser.read(self.readval)
-          return code
+        #if read:
+        #  code = self.read()
+        #  return code
       else:
         self.serial_logger.debug ("Clearing read buffer")
         self.ser.flush()
         self.ser.flushOutput()
-        self.ser.flushInput()
-        waiting = self.ser.inWaiting()
-        if (waiting > 0):
-          self.ser.read(waiting)
+        #self.ser.flushInput()
+        #waiting = self.ser.inWaiting()
+        #if (waiting > 0):
+        #  self.read(True)
     except:
       self.serial_logger.error ("%s call failed", cmd.rstrip())
 
   def monitor(self):
     while True:
-      if not self.queue.empty():
-        item = self.queue.get(True)
-        self.cmd(item)
-        self.queue.task_done()
-        self.ser.flush()
+      item = self.queue.get()
+      self.cmd(item)
+      self.queue.task_done()
+      self.ser.flush()
+
+  def read_monitor(self):
+    while True:
+      self.read(True)
 
   def add(self, cmd, direct=False):
     if direct:

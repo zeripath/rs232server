@@ -75,10 +75,12 @@ def main():
     logger.error('failed to read any configuration files. Looked in ' + str(filenames)[1:-1])
     exit(1)
 
+  gobject.threads_init()
+
   # start dbus mainloop
-  DBusGMainLoop(set_as_default=True)
+  dbus_loop = DBusGMainLoop(set_as_default=True)
   try:
-    bus_name = dbus.service.BusName(RS232SERVER_BUS_NAME, bus=dbus.SystemBus())
+    bus_name = dbus.service.BusName(RS232SERVER_BUS_NAME, bus=dbus.SystemBus(dbus_loop))
   except:
     e = sys.exc_info()
     logger.error(e)
