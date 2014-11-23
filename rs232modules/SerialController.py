@@ -43,6 +43,7 @@ class SerialController:
     self.t.start()
 
     # set up reader thread
+    self.ser.timeout = None
     self.reader = Thread(target=self.read_monitor)
     self.reader.daemon = True
     self.reader.start()
@@ -59,7 +60,7 @@ class SerialController:
         return self.readval.read(self.ser, all_entries)
       else:
         if (all_entries):
-          return self.ser.read(self.ser.inWaiting())
+          return self.ser.read(self.ser.inWaiting() or self.readVal)
         else:
           return self.ser.read(self.readval)
     except:
@@ -71,6 +72,7 @@ class SerialController:
         numBytes = self.ser.write(cmd)
         self.serial_logger.debug("Wrote %d bytes", numBytes)
         self.serial_logger.debug (str([hex(ord(x)) for x in cmd]) + " called")
+        self.ser.flush()
         #if read:
         #  code = self.read()
         #  return code
