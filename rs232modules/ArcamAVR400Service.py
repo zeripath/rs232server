@@ -34,6 +34,11 @@ ST=chr(0x21)
 ET=chr(0x0d)
 zones = { 0x01: {}, 0x02: {}}
 
+def _or_unknown(dictionary, key):
+  if key in dictionary:
+    return dictionary[key]
+  else:
+    return "Unknown: " + str(hex(key))
 
 class Message:
   M_ZONE = 1
@@ -54,10 +59,7 @@ class Message:
     return str(ord(self.data[0]) if ord(self.data[0]) <= max_val else (0x80 - ord(self.data[0])))
 
   def dict_or_unknown(self, dictionary, idx=0):
-    if ord(self.data[idx]) in dictionary:
-      return dictionary[ord(self.data[idx])]
-    else:
-      return "Unknown: " + str(hex(ord(self.data[idx])))
+    return _or_unknown(dictionary, ord(self.data[idx]))
 
   def hex_string(self):
     return str([hex(ord(x)) for x in self.data])
@@ -127,7 +129,7 @@ class ArcamAVR400Service(BaseService):
           if (len(zone) > 0):
             returnable += "Zone: " + str(idx) + "\n"
             for key in sorted(zone.keys(), key = lambda x : ('z' + str(x)) if str(x).upper() < 'A' else str(x).upper()):
-              returnable += "  " + str(key) + ": " + str(zone[key][0]) + ( (" - " + a_cmds.answer_code[zone[key][1]]) if zone[key][1] != 0x00 else "") + "\n"
+              returnable += "  " + str(key) + ": " + str(zone[key][0]) + ( (" - " + _or_unknown(a_cmds.answer_code, zone[key][1])) if zone[key][1] != 0x00 else "") + "\n"
           else:
             returnable += "No information on zone: " + str(idx) + "\n"
     except:
@@ -135,7 +137,10 @@ class ArcamAVR400Service(BaseService):
     return returnable
 
   def answer_code(self, message):
-    return a_cmds.answer_code[message.answer_code]
+    if a_cmds.answer_code.has_key(message.answer_code):
+        return a_cmds.answer_code[message.answer_code]
+    else:
+        return hex(message.answer_code) + ': Unknown Code'
 
   def set_zone(self, zone, name, value, answer_code):
     with self.lock:

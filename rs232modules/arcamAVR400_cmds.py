@@ -53,13 +53,12 @@ def volume_check(x=None):
     return "[0...99 | current]"
 
 
-def _leveller_command(help_str, code="\x39", max_val=0x0a, opts="?"):
+def _leveller_command(help_str, code=0x39, max_val=0x0a, opts="?"):
   def parse_leveller(x):
     try:
       val = int(x)
       if (val <= max_val and val >= 0):
         return chr(val)
-      return chr(0xf0)
     except ValueError:
       if x.lower() == 'current':
         return chr(0xf0)
@@ -69,7 +68,7 @@ def _leveller_command(help_str, code="\x39", max_val=0x0a, opts="?"):
         return chr(0xf2)
       elif x.lower() == 'off':
         return chr(0xff)
-      return chr(0xf0)
+    return chr(0xf0)
   def check_leveller(x=None):
     if x is not None:
       val = parse_leveller(x)
@@ -412,7 +411,7 @@ _add_dict_command_and_dict_response(0x38, "Equalization", "dolby_volume",
   command_current_0x01_on,
   response_0x01_on)
 
-commands['Equalization']["dolby_leveller"] = _leveller_command("Control the status of the leveller component of the Dolby volume system", "\x39", 0x0a, "?")
+commands['Equalization']["dolby_leveller"] = _leveller_command("Control the status of the leveller component of the Dolby volume system", 0x39, 0x0a, "?")
 _add_response_parser(0x39, "Dolby Leveller", lambda x: (str(ord(x.data[0])) if ord(x.data[0]) < 0x0a else "Off"))
 
 _add_int_command_and_int_response(0x3b, "Equalization", "balance", "Get/Set Balance", "Balance", 0x06)
